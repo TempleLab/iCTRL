@@ -1,0 +1,43 @@
+name: Build unsigned IPAs
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ipa-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  ipa:
+    name: Build iCTRL + Runner
+    runs-on: macos-15
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: Toolchain
+        run: |
+          xcodebuild -version
+          xcode-select -p
+          python3 --version
+      - name: Install xcodegen
+        run: brew install xcodegen
+      - name: Fetch idevice.xcframework
+        run: bash Scripts/fetch-idevice.sh
+      - name: Build and package (unsigned)
+        run: make ipa UNSIGNED=1
+      - name: List products
+        run: ls -lh release/
+      - name: Upload IPAs
+        uses: actions/upload-artifact@v4
+        with:
+          name: ictrl-unsigned-ipas
+          path: |
+            release/iCTRL.ipa
+            release/iCTRLUITests-Runner.ipa
+          if-no-files-found: error
+          retention-days: 14
