@@ -140,8 +140,12 @@ ipa: build
 	trap 'rm -f "$$TMP"' EXIT; \
 	python3 Scripts/insert-dylib.py "$$TMP" "@rpath/libXCTCompatShim.dylib"; \
 	ORD="$$(python3 Scripts/dylib-ordinal.py "$$TMP" libXCTCompatShim)"; \
-	python3 Scripts/retarget-bind-ordinal.py "$$TMP" \
-		'_OBJC_CLASS_$$_XCTCommandLineToolHelper' "$$ORD"; \
+	if ! python3 Scripts/retarget-bind-ordinal.py "$$TMP" \
+		'_OBJC_CLASS_$$_XCTCommandLineToolHelper' "$$ORD"; then \
+		echo "   shim not needed for this XCTRunner stub (no bind record) - skipping"; \
+		rm -f "$$APP/Frameworks/libXCTCompatShim.dylib"; \
+		exit 0; \
+	fi; \
 	python3 Scripts/retarget-undef-symbol.py "$$TMP" \
 		'_OBJC_CLASS_$$_XCTCommandLineToolHelper' libXCTCompatShim; \
 	mv "$$TMP" "$$BIN"
